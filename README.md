@@ -34,7 +34,7 @@ You can download the weights from [Google Drive](https://drive.google.com/drive/
 Data preprocessing follows the method used in [4D-GS](https://github.com/fudan-zvg/4d-gaussian-splatting).
 Run the following command to prepare the data:
 ```
-python scripts/n3v2blender.py data/N3V/$scene_name
+python scripts/npy2pose.py data/N3V/$scene_name
 ```
 
 The directory data/N3V/$scene_name should contain the following files before preprocessing:
