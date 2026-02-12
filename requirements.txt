@@ -8,12 +8,7 @@ dahuffman
 imageio
 lpips
 
---extra-index-url=https://pypi.nvidia.com
-rmm-cu12==25.2.*
-cudf-cu12==25.2.*
-cuml-cu12==25.2.*
+scikit-learn
 
 ./simple-knn
 ./pointops2
-
-git+https://github.com/NVlabs/tiny-cuda-nn/#subdirectory=bindings/torch

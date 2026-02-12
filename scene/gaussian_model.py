@@ -13,8 +13,6 @@ import torch
 import numpy as np
 import math
 import torch
-import tinycudann as tcnn
-import cupy as cp
 import os
 from utils.general_utils import inverse_sigmoid, get_expon_lr_func, build_rotation, build_rotation_4d, build_scaling_rotation_4d
 from torch import nn
@@ -27,11 +25,84 @@ from utils.general_utils import strip_symmetric, build_scaling_rotation
 from utils.sh_utils import sh_channels_4d
 from collections import defaultdict
 from utils.compress_utils import *
-from cuml.cluster import KMeans
+from sklearn.cluster import KMeans
 from utils.gpcc_utils import compress_gpcc, decompress_gpcc, calculate_morton_order, float16_to_uint16, uint16_to_float16
 from torch.nn.utils.rnn import pad_sequence
 from typing import List, Tuple
 from tqdm import tqdm
+
+class FrequencyEncoding(nn.Module):
+    """Pure PyTorch replacement for tcnn's Frequency encoding."""
+    def __init__(self, n_input_dims, n_frequencies):
+        super().__init__()
+        self.n_input_dims = n_input_dims
+        self.n_frequencies = n_frequencies
+        self.n_output_dims = n_input_dims * n_frequencies * 2
+        freqs = 2.0 ** torch.arange(n_frequencies).float() * math.pi
+        self.register_buffer('freqs', freqs)
+
+    def forward(self, x):
+        x_expanded = x.unsqueeze(-1) * self.freqs
+        encoded = torch.cat([torch.sin(x_expanded), torch.cos(x_expanded)], dim=-1)
+        return encoded.reshape(x.shape[0], -1)
+
+
+class TorchMLP(nn.Module):
+    """Pure PyTorch replacement for tcnn.Network (FullyFusedMLP).
+    Provides a .params property for encode/decode compatibility with tcnn."""
+    def __init__(self, n_input_dims, n_output_dims, activation="ReLU", n_neurons=64, n_hidden_layers=1):
+        super().__init__()
+        layers = []
+        in_dim = n_input_dims
+        for _ in range(n_hidden_layers):
+            layers.append(nn.Linear(in_dim, n_neurons, bias=False))
+            if activation == "ReLU":
+                layers.append(nn.ReLU(inplace=True))
+            elif activation == "LeakyReLU":
+                layers.append(nn.LeakyReLU(inplace=True))
+            in_dim = n_neurons
+        layers.append(nn.Linear(in_dim, n_output_dims, bias=False))
+        self.net = nn.Sequential(*layers)
+
+    @property
+    def params(self):
+        return torch.cat([p.data.reshape(-1) for p in self.parameters()])
+
+    @params.setter
+    def params(self, flat_params):
+        offset = 0
+        with torch.no_grad():
+            for p in self.parameters():
+                numel = p.numel()
+                p.data.copy_(flat_params.data[offset:offset+numel].reshape(p.shape).to(p.dtype))
+                offset += numel
+
+    def forward(self, x):
+        return self.net(x.float())
+
+
+class TorchMLPWithEncoding(nn.Module):
+    """Pure PyTorch replacement for tcnn.NetworkWithInputEncoding.
+    Combines FrequencyEncoding with TorchMLP."""
+    def __init__(self, n_input_dims, n_output_dims, encoding_n_frequencies=16,
+                 activation="ReLU", n_neurons=64, n_hidden_layers=1):
+        super().__init__()
+        self.encoding = FrequencyEncoding(n_input_dims, encoding_n_frequencies)
+        self.mlp = TorchMLP(self.encoding.n_output_dims, n_output_dims,
+                            activation=activation, n_neurons=n_neurons,
+                            n_hidden_layers=n_hidden_layers)
+
+    @property
+    def params(self):
+        return self.mlp.params
+
+    @params.setter
+    def params(self, flat_params):
+        self.mlp.params = flat_params
+
+    def forward(self, x):
+        return self.mlp(self.encoding(x))
+
 
 def _flatten_groups_to_ragged(groups):
     device = groups[0].device if len(groups) else torch.device('cuda')
@@ -928,57 +999,39 @@ class GaussianModel:
 
     def construct_net(self, train=True):
         # Default hyperparameter from OMG (https://github.com/maincold2/OMG)
-        self.mlp_cont = tcnn.NetworkWithInputEncoding(
+        # Pure PyTorch replacements for tcnn networks
+        self.mlp_cont = TorchMLPWithEncoding(
             n_input_dims=4,
             n_output_dims=13,
-            encoding_config={
-                "otype": "Frequency",
-                "n_frequencies": 16,
-            },
-            network_config={
-                "otype": "FullyFusedMLP",
-                "activation": "ReLU",
-                "output_activation": "None",
-                "n_neurons": 64,
-                "n_hidden_layers": 1,
-            },
-        )
+            encoding_n_frequencies=16,
+            activation="ReLU",
+            n_neurons=64,
+            n_hidden_layers=1,
+        ).cuda()
 
-        self.mlp_view = tcnn.Network(
+        self.mlp_view = TorchMLP(
             n_input_dims=16,
             n_output_dims=3*47,
-            network_config={
-                "otype": "FullyFusedMLP",
-                "activation": "LeakyReLU",
-                "output_activation": "None",
-                "n_neurons": 64,
-                "n_hidden_layers": 1,
-            },
-        )
+            activation="LeakyReLU",
+            n_neurons=64,
+            n_hidden_layers=1,
+        ).cuda()
 
-        self.mlp_dc = tcnn.Network(
+        self.mlp_dc = TorchMLP(
             n_input_dims=16,
             n_output_dims=3,
-            network_config={
-                "otype": "FullyFusedMLP",
-                "activation": "LeakyReLU",
-                "output_activation": "None",
-                "n_neurons": 64,
-                "n_hidden_layers": 1,
-            },
-        )
+            activation="LeakyReLU",
+            n_neurons=64,
+            n_hidden_layers=1,
+        ).cuda()
 
-        self.mlp_opacity = tcnn.Network(
+        self.mlp_opacity = TorchMLP(
             n_input_dims=16,
             n_output_dims=1,
-            network_config={
-                "otype": "FullyFusedMLP",
-                "activation": "LeakyReLU",
-                "output_activation": "None",
-                "n_neurons": 64,
-                "n_hidden_layers": 1,
-            },
-        )
+            activation="LeakyReLU",
+            n_neurons=64,
+            n_hidden_layers=1,
+        ).cuda()
 
         if train:
             self.net_enabled = True
@@ -1077,17 +1130,17 @@ class GaussianModel:
     def kmeans(self, param_data, code_list, index_list, svq_len, n_clusters, code_params):
         assert param_data.shape[1] % svq_len == 0, "invalid sub-vector length"
         for i in range(param_data.shape[1]//svq_len):
-            input_cp = cp.asarray(param_data[:, i*svq_len:(i+1)*svq_len].detach().cpu())
-            kmeans = KMeans(n_clusters=n_clusters, max_iter=1000, n_init=1)
-            labels = kmeans.fit_predict(input_cp)
-            cluster_centers = kmeans.cluster_centers_
+            input_np = param_data[:, i*svq_len:(i+1)*svq_len].detach().cpu().numpy()
+            km = KMeans(n_clusters=n_clusters, max_iter=1000, n_init=1)
+            labels = km.fit_predict(input_np)
+            cluster_centers = km.cluster_centers_
 
-            codebook = torch.nn.Parameter(torch.from_dlpack(cluster_centers)).cuda()
-            index = torch.from_dlpack(labels).cuda().long()
+            codebook = torch.nn.Parameter(torch.from_numpy(cluster_centers.astype(np.float32)).cuda())
+            index = torch.from_numpy(labels.astype(np.int64)).cuda()
 
             code_list.append(codebook)
             index_list.append(index)
-            code_params.append(codebook) 
+            code_params.append(codebook)
 
     @property    
     def get_svq_t(self):
