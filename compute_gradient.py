@@ -113,8 +113,6 @@ def calc_gradient(dataset, opt, pipe, scene, gaussians, batch_size, bg_color, ba
         final_view_grad = final_view_grad.detach().cpu().numpy()
     if torch.is_tensor(final_t_grad):
         final_t_grad = final_t_grad.detach().cpu().numpy()
-    import pdb; pdb.set_trace()
-
     os.makedirs(os.path.join(scene.model_path, "gradient"), exist_ok=True)
 
     np.save(os.path.join(scene.model_path, "gradient/view_grad.npy"), final_view_grad)

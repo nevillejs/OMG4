@@ -2,3 +2,39 @@ OMG4_weights/
 data/
 gradient/
 
+# ---- Python ----
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+*.egg
+
+# ---- Build artifacts ----
+build/
+*/build/
+**/build/
+
+# ---- Compiled extensions ----
+*.so
+*.pyd
+*.dll
+*.dylib
+
+# ---- Ninja / CMake / temp ----
+.ninja_*
+*.ninja
+CMakeCache.txt
+CMakeFiles/
+
+# ---- PyTorch extension cache ----
+torch_extensions/
+
+# ---- CUDA object files ----
+*.o
+*.cuo
+
+# ---- Logs ----
+*.log
+
