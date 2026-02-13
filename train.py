@@ -14,6 +14,7 @@ import random
 import sys
 import uuid
 import torch
+torch.multiprocessing.set_sharing_strategy('file_system')
 import numpy as np
 import torchvision.transforms as T
 import imageio

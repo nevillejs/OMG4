@@ -1310,10 +1310,10 @@ class GaussianModel:
 
             if not hasattr(self, "mlp_cont"):
                 self.construct_net(train=True)
-            self.mlp_cont.params = torch.nn.Parameter(torch.tensor(save_dict['MLP_cont']).cuda().half().requires_grad_(True))
-            self.mlp_dc.params = torch.nn.Parameter(torch.tensor(save_dict['MLP_dc']).cuda().half().requires_grad_(True))
-            self.mlp_view.params = torch.nn.Parameter(torch.tensor(save_dict['MLP_sh']).cuda().half().requires_grad_(True))
-            self.mlp_opacity.params = torch.nn.Parameter(torch.tensor(save_dict['MLP_opacity']).cuda().half().requires_grad_(True))
+            self.mlp_cont.params.data = torch.tensor(save_dict['MLP_cont']).cuda().half()
+            self.mlp_dc.params.data = torch.tensor(save_dict['MLP_dc']).cuda().half()
+            self.mlp_view.params.data = torch.tensor(save_dict['MLP_sh']).cuda().half()
+            self.mlp_opacity.params.data = torch.tensor(save_dict['MLP_opacity']).cuda().half()
 
             self._t = torch.from_numpy(save_dict['t']).float().cuda()
 
