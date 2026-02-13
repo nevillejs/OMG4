@@ -83,7 +83,7 @@ function decodeFloat16(uint16Array) {
 async function main() {
     try {
         // 1. Load Gaussians Data
-        const svqData = await loadNpz('../test_export_out/gaussians.npz'); // pointing to test output for demo
+        const svqData = await loadNpz('./gaussians.npz'); // Changed to local directory for demo
         console.log("SVQ Data loaded:", svqData);
         STATUS.textContent = "Data loaded. Reconstructing...";
 
@@ -109,7 +109,7 @@ async function main() {
 
         // 3. Initialize Session
         STATUS.textContent = "Loading ONNX Model...";
-        const session = await ort.InferenceSession.create('../test_export_out/mlp_inference.onnx');
+        const session = await ort.InferenceSession.create('./mlp_inference.onnx');
         STATUS.textContent = "Model loaded. Running Inference...";
 
         // 4. Run Inference

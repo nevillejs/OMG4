@@ -72,7 +72,7 @@ def test_export():
         force_sh_3d=False,
         seed=6666,
         comp_checkpoint="dummy.xz",
-        out_dir="test_export_out",
+        out_dir="web",
         opset=17
     )
     
