@@ -1,7 +1,5 @@
-
-import * as ort from "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js";
-
-// Basic implementation of the client-side logic described in export_onnx.py
+// import * as ort from "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js";
+// Using the global `ort` object loaded via <script> tag in index.html
 
 const STATUS = document.getElementById('status');
 
