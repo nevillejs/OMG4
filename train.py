@@ -63,11 +63,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     sim_cutoff = opt.sim_cutoff
     grid_size = opt.grid_size
 
+
     if checkpoint:
         (model_params, first_iter) = torch.load(checkpoint, weights_only=False)
         gaussians.restore(model_params, opt)
 
-    first_iter = 30000
     bg_color = [1, 1, 1] if dataset.white_background else [0, 0, 0]
     background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
 
@@ -85,15 +85,19 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     final_iteration = encode_iter
     testing_iterations.append(final_iteration)
 
-    try:
-        view_grad = np.load(os.path.join(args.grad, 'view_grad.npy'))
-        t_grad = np.load(os.path.join(args.grad, 't_grad.npy'))
-    except:
-        print("Error: please calculate gradient first")
+    view_grad, t_grad = None, None
+    mask = None
+    if first_iter >= compression_start:
+        try:
+            view_grad = np.load(os.path.join(args.grad, 'view_grad.npy'))
+            t_grad = np.load(os.path.join(args.grad, 't_grad.npy'))
+        except:
+            print("Error: please calculate gradient first")
 
-    #gradient sampling
-    mask = gaussians.gradient_sampling(opt.tau_GS, view_grad, t_grad, args)
-    torch.cuda.empty_cache() 
+        #gradient sampling
+        if view_grad is not None:
+            mask = gaussians.gradient_sampling(opt.tau_GS, view_grad, t_grad, args)
+            torch.cuda.empty_cache() 
 
     iter_start = torch.cuda.Event(enable_timing = True)
     iter_end = torch.cuda.Event(enable_timing = True)
@@ -229,7 +233,8 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
                 #gradient pruning
                 if iteration == grad_pruning_iter:
-                    gaussians.gradient_pruning(view_grad, t_grad, opt.tau_GP, opt.tau_GP, args, mask)
+                    if view_grad is not None:
+                        gaussians.gradient_pruning(view_grad, t_grad, opt.tau_GP, opt.tau_GP, args, mask)
                     torch.cuda.empty_cache() 
 
                 #gaussian merging
