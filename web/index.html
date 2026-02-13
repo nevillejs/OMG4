@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OMG4 Web Client</title>
+    <!-- Load ONNX Runtime Web -->
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script type="module" src="script.js"></script>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        #status { margin-bottom: 20px; font-weight: bold; }
+        #controls { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <h1>OMG4 Web Client Demo</h1>
+    <div id="status">Loading...</div>
+    <div id="controls">
+        <label for="timeSlider">Time:</label>
+        <input type="range" id="timeSlider" min="0" max="1" step="0.01" value="0.5">
+        <span id="timeValue">0.5</span>
+    </div>
+    <div id="output">
+        <p>Check the developer console for inference logs.</p>
+    </div>
+</body>
+</html>

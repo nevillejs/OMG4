@@ -39,7 +39,7 @@ class MockGaussianModel:
         self.time_duration = [-0.5, 0.5]
         
         self.mlp_cont = MagicMock()
-        self.mlp_cont.mlp = torch.nn.Linear(10, 32).cuda()
+        self.mlp_cont.mlp = torch.nn.Linear(80, 32).cuda()
         self.mlp_cont.encoding = MagicMock()
         self.mlp_cont.encoding.freqs = torch.rand(10).cuda()
         
