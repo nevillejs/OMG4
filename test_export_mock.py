@@ -140,7 +140,7 @@ def test_export():
                 "sh_rest": {0: "N"},
                 "opacity": {0: "N"},
             },
-            use_external_data_format=False,
+            keep_initializers_as_inputs=False,
         )
         print(f"ONNX exported to {onnx_path}")
 
