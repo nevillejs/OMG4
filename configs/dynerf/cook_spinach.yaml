@@ -4,7 +4,7 @@ num_pts: 300_000
 num_pts_ratio: 1.0
 rot_4d: True
 force_sh_3d: False
-batch_size: 4
+batch_size: 1
 exhaust_test: True
 
 ModelParams:
@@ -51,7 +51,7 @@ OptimizationParams:
     densify_until_iter: 15_000
     densify_grad_threshold: 0.0002
     densify_grad_t_threshold: 0.0002 / 40 # 想办法用上
-    densify_until_num_points: -1
+    densify_until_num_points: 1000000
     final_prune_from_iter: -1
     sh_increase_interval: 1000
     
