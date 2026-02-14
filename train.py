@@ -191,11 +191,18 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                     
                     if gaussians.gaussian_dim == 4:
                         batch_t_grad = gaussians._t.grad.clone()[:,0].detach()
+                        if gaussians._t.grad is not None:
+                            batch_t_grad = gaussians._t.grad.clone()[:,0].detach()
+                        else:
+                            batch_t_grad = torch.zeros_like(gaussians._t[:,0])
                         batch_t_grad[visibility_filter] = batch_t_grad[visibility_filter] * batch_size / visibility_count[visibility_filter]
                         batch_t_grad = batch_t_grad.unsqueeze(1)
             else:
                 if gaussians.gaussian_dim == 4:
-                    batch_t_grad = gaussians._t.grad.clone().detach()
+                    if gaussians._t.grad is not None:
+                        batch_t_grad = gaussians._t.grad.clone().detach()
+                    else:
+                        batch_t_grad = torch.zeros_like(gaussians._t)
         
             iter_end.record()
             loss_dict = {"Ll1": Ll1,
