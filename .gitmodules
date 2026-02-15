@@ -1,0 +1,3 @@
+[submodule "4dgs"]
+	path = 4dgs
+	url = https://github.com/fudan-zvg/4d-gaussian-splatting.git

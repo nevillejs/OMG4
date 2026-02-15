@@ -9,7 +9,7 @@ exhaust_test: True
 
 ModelParams:
   sh_degree: 3
-  source_path: "/home/gl/dev/OMG4/data/N3V/cook_spinach"
+  source_path: "/workspace/OMG4/data/N3V/cook_spinach"
   model_path: "./cook_spinach"  # Not in use
   images: "images"
   resolution: 1.3203125
